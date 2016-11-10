@@ -1,6 +1,11 @@
 package com.example.slidingviewswitcher;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -46,7 +51,7 @@ public class SlidingSwitcherView extends RelativeLayout   {
 	 * 最多可以滑动到的右边缘。值恒为0，marginLeft到达此值之后，不能再增加。
 	 */
 	private int rightEdge = 0;
-
+private Handler handler=new Handler();
 	/**
 	 * 记录手指按下时的横坐标。
 	 */
@@ -94,9 +99,75 @@ public class SlidingSwitcherView extends RelativeLayout   {
 	 * @param attrs
 	 */
 	public SlidingSwitcherView(Context context, AttributeSet attrs) {
-		super(context, attrs);
+		 super(context, attrs);  
+		    TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SlidingSwitcherView);  
+		    boolean isAutoPlay = a.getBoolean(R.styleable.SlidingSwitcherView_auto_play, false);  
+		    if (isAutoPlay) {  
+		        startAutoPlay();  
+		    }  
+		    a.recycle();  
 	}
+class myselfscrolltask extends AsyncTask<Integer, Integer, Integer> {
 
+	@Override
+	protected Integer doInBackground(Integer... params) {
+		// TODO Auto-generated method stub
+		int leftmargin=firstItemParams.rightMargin;
+		while(true){
+			leftmargin=leftmargin+params[0];
+			if(leftmargin>0){
+				break;
+			}
+		
+		publishProgress(leftmargin);  
+        sleep(20); }
+		return leftmargin;
+	}
+	 protected void onProgressUpdate(Integer... leftMargin) {  
+	        firstItemParams.leftMargin = leftMargin[0];  
+	        firstItem.setLayoutParams(firstItemParams);  
+	    }  
+	  
+	    @Override  
+	    protected void onPostExecute(Integer leftMargin) {  
+	        firstItemParams.leftMargin = leftMargin;  
+	        firstItem.setLayoutParams(firstItemParams);  
+	    }  
+	  
+	
+}
+public void startAutoPlay(){
+	new Timer().scheduleAtFixedRate(new TimerTask(){
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			if(currentItemIndex == itemsCount - 1){
+				currentItemIndex=0;
+				handler.post(new Runnable(){
+
+					@Override
+					public void run() {
+						// TODO Auto-generated method stub
+						 scrollToFirstItem();  
+	                        refreshDotsLayout();  
+					}
+					
+				});
+			}else{
+				 currentItemIndex++;  
+	                handler.post(new Runnable() {  
+	                    @Override  
+	                    public void run() {  
+	                        scrollToNext();  
+	                        refreshDotsLayout();  
+	                    }  
+	                });  
+			}
+		}
+		
+	},3000, 3000);
+}
 	/**
 	 * 滚动到下一个元素。
 	 */
@@ -110,17 +181,20 @@ public class SlidingSwitcherView extends RelativeLayout   {
 	public void scrollToPrevious() {
 		new ScrollTask().execute(20);
 	}
+	public void scrollToFirstItem() {  
+	    new myselfscrolltask().execute(20 * itemsCount);  
+	}  
 
 	/**
 	 * 在onLayout中重新设定菜单元素和标签元素的参数。
 	 */
 	@Override
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {
-		super.onLayout(changed, l, t, r, b);
-		if (changed) {
-			initializeItems();
-			initializeDots();
-		}
+		  super.onLayout(changed, l, t, r, b);  
+	        if (changed) {  
+	            initializeItems();  
+	            initializeDots();  
+	        }  
 	}
 
 	/**
@@ -395,4 +469,7 @@ public class SlidingSwitcherView extends RelativeLayout   {
 			e.printStackTrace();
 		}
 	}
+
+	
+	
 }
